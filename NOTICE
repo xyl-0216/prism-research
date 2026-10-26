@@ -1,0 +1,24 @@
+Prism Research
+
+Open Deep Research: LangChain, MIT.
+Baseline: 1b7d2e80db9faa586165c60e09096dbbfd483a64.
+Original LICENSE retained at the repository root.
+
+MC-Search: Copyright (c) 2026 MC-Search contributors, MIT.
+Vendored parsers: src/open_deep_research/mcsearch_protocol.py.
+License: docs/third_party/MC-Search-LICENSE.txt.
+Source and exact extraction details: docs/third_party/mcsearch-provenance.json.
+
+MPMQA: Copyright(c) 2022 Liang Zhang, Apache License 2.0.
+Adapted scoring: src/open_deep_research/mpmqa_scoring.py.
+Source: AIM3-RUC/MPMQA, models/mqa_model.py, MQAT5Model.similarity_score.
+Changes: NumPy single-pair scoring, lexical features, no distributed training code.
+Full license: docs/third_party/MPMQA-LICENSE.txt.
+
+MMSearch: method attribution to CaraJ7/MMSearch (ICLR 2025).
+The staged adapter is independently implemented; no upstream source copied.
+
+Dependency licenses remain with their authors. PyMuPDF is distributed under AGPL-3.0
+or a commercial license; see its installed distribution and upstream licensing terms
+when redistributing or deploying the combined application. The root MIT license
+does not replace dependency or third-party licenses.

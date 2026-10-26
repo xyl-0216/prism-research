@@ -1,0 +1,9 @@
+{
+  "source_file": "src\\gpt\\agent_local_retrieval_gpt_multi.py",
+  "source_sha256": "07c32cc10eed49b3ff9e5fa9efe6f349d85c3808f17848e9ce8626f3d0b89b7d",
+  "functions": [
+    "parse_search_block",
+    "extract_final_answer"
+  ],
+  "modification": "Extracted unchanged function bodies; dependencies reduced to Python standard library. Planner instructions translated and adapted separately."
+}
