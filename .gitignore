@@ -16,3 +16,7 @@ docs/logs/*
 site/prism-research-source.zip
 site/prism-research-source.manifest.json
 docs/mock_research_report.md
+
+# Local preview artifacts
+README.preview.html
+项目展示.html

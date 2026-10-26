@@ -8,6 +8,8 @@ A multimodal research agent built on Open Deep Research, with staged retrieval, 
 
 Prism Research 将图片观察、网页检索和文档研究连接到同一条证据链。每一步记录子问题、工具选择、来源与中间结果，最终输出可追溯的中文报告。
 
+[在线展示](https://xyl-0216.github.io/prism-research/) · [源码仓库](https://github.com/xyl-0216/prism-research)
+
 ## 能力
 
 - **图像辅助检索**：结合问题与已登记图片改写查询，筛选候选资料后读取原文；支持附加候选网页截图。
@@ -81,9 +83,13 @@ python -m pytest -q
 离线检查覆盖协议解析、工具路由、预算、证据编号、文档区域与完整 Agent 图数据通路。测试结果是工程验证，不作为模型准确率或论文基准成绩。
 
 - [运行配置](docs/runtime.md)
-- [代码与方法对应关系](docs/implementation-status.md)
+- [系统设计与方法实现](docs/architecture.md)
 - [开源组件与许可](NOTICE)
-- [展示页面](site/index.html)
+- [在线展示](https://xyl-0216.github.io/prism-research/)
+
+新增工具请提供离线边界测试，覆盖未知证据编号、预算耗尽和截断输出；提交前运行测试与 `prism-research demo`。新增第三方代码需保留来源版本、许可证与改动说明，请勿提交 `.env`、API Key、真实运行资料或未经许可的数据。
+
+网站源码位于 `site/`，推送 `main` 后由 GitHub Actions 自动发布，并生成页面使用的源码下载包。本地打包可先暂存需要发布的文件，再执行 `python scripts/build_release.py`；脚本仅归档 Git 已跟踪的文件。
 
 ## 致谢与许可
 

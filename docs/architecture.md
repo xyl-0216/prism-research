@@ -1,4 +1,6 @@
-# 方法与代码对应
+# 系统设计与方法实现
+
+研究流程由 Open Deep Research 编排，证据规划控制器根据已有结果选择工具，最终将来源与结论关联到研究报告。以下记录各模块的来源、接入方式与实现边界。
 
 ## Open Deep Research
 基线提交：`1b7d2e80db9faa586165c60e09096dbbfd483a64`。保留 `clarify_with_user`、`write_research_brief`、Supervisor 子图和最终报告节点。通用模式将一次研究委派交给证据规划控制器；原文本模式仍保留。
