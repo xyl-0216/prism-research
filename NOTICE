@@ -12,7 +12,12 @@ Source and exact extraction details: docs/third_party/mcsearch-provenance.json.
 MPMQA: Copyright(c) 2022 Liang Zhang, Apache License 2.0.
 Adapted scoring: src/open_deep_research/mpmqa_scoring.py.
 Source: AIM3-RUC/MPMQA, models/mqa_model.py, MQAT5Model.similarity_score.
-Changes: NumPy single-pair scoring, lexical features, no distributed training code.
+Changes: NumPy single-pair scorer retained for reference tests only. Production
+retrieval reuses official MQAT5Model in an isolated runtime through
+mpmqa_backend.py and mpmqa_worker.py. Adapted region/subword input assembly,
+single-process inference without distributed AllGather, and PyMuPDF layout inputs.
+The worker adaptations retain Apache-2.0 attribution. Learned author weights and
+the original dependency environment must be supplied separately.
 Full license: docs/third_party/MPMQA-LICENSE.txt.
 
 MMSearch: method attribution to CaraJ7/MMSearch (ICLR 2025).

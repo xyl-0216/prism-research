@@ -15,10 +15,12 @@ import httpx
 from bs4 import BeautifulSoup
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
-from openai import AsyncOpenAI
+from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
 
 from open_deep_research.configuration import Configuration
 from open_deep_research.evidence_runtime import active_run
+from open_deep_research.model_compat import model_extra_body
 
 ALLOWED_HOSTS = {'docs.langchain.com', 'openai.github.io', 'learn.microsoft.com', 'www.nvidia.com', 'images.nvidia.com'}
 NVIDIA_URL = 'https://www.nvidia.com/en-us/geforce/news/rtx-5070-out-now/'
@@ -160,22 +162,25 @@ async def inspect_source_image(asset_id: str, question: str, config: RunnableCon
     run.reserve('vision', len(prompt), 1800)
     run.vision_calls = getattr(run, 'vision_calls', 0)+1
     settings = Configuration.from_runnable_config(config)
-    async with AsyncOpenAI(api_key=os.environ['OPENAI_API_KEY'],
-                           base_url=os.getenv('OPENAI_API_BASE') or os.getenv('OPENAI_BASE_URL'),
-                           max_retries=0, timeout=90) as client:
-        response = await client.chat.completions.create(
-            model=settings.research_model.split(':', 1)[1], max_tokens=1800,
-            extra_body={'enable_thinking': False},
-            messages=[{'role':'user', 'content':[
-                {'type':'text', 'text':prompt},
-                {'type':'image_url','image_url':{'url':'data:image/jpeg;base64,'+base64.b64encode(raw).decode()}}
-            ]}])
-    choice = response.choices[0]
+    model = ChatOpenAI(
+        model=settings.research_model.split(':', 1)[-1],
+        api_key=os.environ['OPENAI_API_KEY'],
+        base_url=os.getenv('OPENAI_API_BASE') or os.getenv('OPENAI_BASE_URL'),
+        max_tokens=1800, max_retries=0, timeout=90,
+        extra_body=model_extra_body(settings.research_model),
+    )
+    response = await model.ainvoke([HumanMessage(content=[
+        {'type':'text', 'text':prompt},
+        {'type':'image_url','image_url':{'url':'data:image/jpeg;base64,'+base64.b64encode(raw).decode()}},
+    ])], config={'callbacks': [], 'tags': ['prism', 'vision']})
+    finish_reason = response.response_metadata.get('finish_reason')
     output = {'asset_id':asset_id, 'image_sha256':record['sha256'], 'image_url':record['url'],
-              'source_page':record['source_page'], 'observations':choice.message.content,
-              'finish_reason':choice.finish_reason}
-    run.log('vision_result', result=output, usage=response.usage.model_dump() if response.usage else None)
-    if choice.finish_reason == 'length':
+              'source_page':record['source_page'], 'observations':response.content,
+              'finish_reason':finish_reason}
+    run.log('vision_result', result=output, usage=response.usage_metadata)
+    if finish_reason == 'length':
         raise ValueError('Visual result truncated; not accepted as complete evidence')
+    if finish_reason != 'stop' or not isinstance(response.content, str) or not response.content.strip():
+        raise ValueError('Incomplete visual model response')
     run.visual_observations = getattr(run, 'visual_observations', [])+[output]
     return json.dumps(output, ensure_ascii=False)

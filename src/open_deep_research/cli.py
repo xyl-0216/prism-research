@@ -15,6 +15,9 @@ async def research(args):
         raise ValueError('Configure OPENAI_API_KEY in your local .env')
     if not args.image and not args.pdf and not args.web:
         raise ValueError('Provide --image, --pdf or --web')
+    if args.pdf:
+        from open_deep_research.mpmqa_backend import URASettings
+        URASettings.from_env()  # Fail before paid planning if the local retriever is unconfigured.
     if args.web:
         from open_deep_research.bailian_search import native_endpoint
         native_endpoint(os.getenv('OPENAI_API_BASE') or os.getenv('OPENAI_BASE_URL') or '')

@@ -20,9 +20,15 @@ def fixture_run(tmp_path):
     return run,index_pdf(run,path)
 
 
+class FixtureRetriever:
+    """Explicit fixed scores for pipeline tests, never used by production."""
+    def rank(self, document, question, top_k):
+        return [(0.8, document['pages'][1]), (0.1, document['pages'][0])][:top_k]
+
+
 def test_pdf_ranking_and_region_geometry(tmp_path):
     run,document=fixture_run(tmp_path)
-    score,page=rank_pages(document,'resolution frame generation coverage')[0]
+    score,page=rank_pages(document,'resolution frame generation coverage', retriever=FixtureRetriever())[0]
     assert page['page']==2 and score>0
     assert any(r['kind']=='graphic' for r in page['regions'])
     for region in page['regions']:
@@ -99,6 +105,7 @@ def test_full_general_graph_document_path(tmp_path,monkeypatch):
     monkeypatch.setattr(dr,'configurable_model',GraphModel())
     monkeypatch.setattr(mc,'ChatOpenAI',Planner)
     monkeypatch.setattr(documents,'make_infer',factory)
+    monkeypatch.setattr(documents,'get_retriever',FixtureRetriever)
     monkeypatch.setattr(reporting,'make_infer',factory)
     monkeypatch.setenv('OPENAI_API_KEY','offline-fixture')
     config={'configurable':{'evidence_profile':'general','mcsearch_enabled':True,'mmsearch_enabled':False,

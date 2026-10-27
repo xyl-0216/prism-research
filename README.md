@@ -72,7 +72,7 @@ flowchart LR
 | Open Deep Research | `deep_researcher.py` | 沿用研究提纲、Supervisor 和报告图编排 |
 | MMSearch | `mmsearch_adapter.py` | 图像辅助查询、候选筛选、原文摘要 |
 | MC-Search | `mcsearch_protocol.py` / `mcsearch_adapter.py` | 复用动作解析器，连接现有工具及逐步证据状态 |
-| MPMQA | `mpmqa_scoring.py` / `document_retrieval.py` | 适配 token 交互评分，连接页面检索与区域引用 |
+| MPMQA | `mpmqa_backend.py` / `mpmqa_worker.py` / `document_retrieval.py` | 接入作者 URA 编码与检索评分，适配 PDF 页面图像、词级坐标和区域引用；需配置原版权重与独立环境，见[运行配置](docs/runtime.md#mpmqa-原版检索环境) |
 
 ## 开发与验证
 

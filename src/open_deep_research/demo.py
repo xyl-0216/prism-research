@@ -5,7 +5,7 @@ from pathlib import Path
 
 import fitz
 
-from open_deep_research.document_retrieval import index_pdf, rank_pages, render_page, validate_document_answer
+from open_deep_research.document_retrieval import index_pdf, render_page, validate_document_answer
 from open_deep_research.evidence_runtime import EvidenceRun
 from open_deep_research.mcsearch_adapter import evidence_chain
 from open_deep_research.reporting import write_report_html
@@ -38,7 +38,8 @@ async def run_demo(output):
     run=EvidenceRun(output,output/'unused-budget.json')
     pdf=output/'synthetic-study.pdf';create_demo_pdf(pdf)
     doc=index_pdf(run,pdf)
-    _,page=rank_pages(doc,'frame generation resolution coverage')[0]
+    # Synthetic presentation fixture, not a retrieval benchmark or model fallback.
+    page=doc['pages'][1]
     image=render_page(doc,page,output/'page_images')
     region=next(r for r in page['regions'] if 'Frame generation' in r['text'])
     replies=iter([

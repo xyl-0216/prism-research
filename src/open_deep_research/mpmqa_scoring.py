@@ -7,7 +7,8 @@
 
 Changes: single query/page pair, NumPy instead of Torch, no masks or distributed
 training. Preserves bidirectional token interaction: dot -> max -> mean.
-Caller uses lexical one-hot features; this is not the learned URA encoder.
+Reference scorer retained for numerical tests. Production retrieval calls the
+author's learned URA model via mpmqa_backend.py / mpmqa_worker.py.
 Source commit: 5226a9aa849fd3b8f35620e7b7d7d10c09d754a2.
 """
 import numpy as np

@@ -8,7 +8,7 @@ import os
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
-from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables import RunnableConfig, RunnableLambda
 from langchain_core.tools import tool
 from open_deep_research.configuration import Configuration
 
@@ -46,7 +46,7 @@ def merge_chunk(payload, result):
         result['request_id'] = payload['request_id']
 
 
-async def bailian_search_async(query: str, config: RunnableConfig):
+async def _bailian_native_search(query: str, config: RunnableConfig):
     settings = Configuration.from_runnable_config(config)
     model = settings.summarization_model
     if not model.startswith('openai:qwen3.5-'):
@@ -104,6 +104,15 @@ async def bailian_search_async(query: str, config: RunnableConfig):
             'summary': ''.join(result['parts']), 'sources': list(result['sources'].values()),
             'usage': result['usage'], 'finish_reason': result['finish_reason'],
             'request_id': result.get('request_id')}
+
+
+# Keep the native transport: it exposes search_info source records needed for citations.
+bailian_search_runnable = RunnableLambda(_bailian_native_search, name='bailian_native_search')
+
+
+async def bailian_search_async(query: str, config: RunnableConfig):
+    """Invoke native source-aware search through the LangChain Runnable interface."""
+    return await bailian_search_runnable.ainvoke(query, config=config)
 
 
 @tool
