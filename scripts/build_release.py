@@ -19,7 +19,7 @@ with zipfile.ZipFile(output,'w',zipfile.ZIP_DEFLATED) as archive:
         path=ROOT/name
         if not path.is_file():raise ValueError('Missing staged source: '+name)
         rel=Path(name)
-        if (any(p in {'.git','.venv','__pycache__','.pytest_cache','runs','smoke-demo'} for p in rel.parts)
+        if (any(p in {'.git','.venv','.prism','__pycache__','.pytest_cache','runs','smoke-demo'} for p in rel.parts)
                 or (path.name.startswith('.env') and path.name!='.env.example')
                 or path.suffix in {'.zip','.pyc'}):
             raise ValueError('Private/generated file in Git index: '+name)

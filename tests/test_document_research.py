@@ -72,12 +72,27 @@ def test_general_image_registration(tmp_path):
     with pytest.raises(ValueError):register_image(run,doc['path'])
 
 
-def test_full_general_graph_document_path(tmp_path,monkeypatch):
+@pytest.mark.parametrize('experimental', [False, True])
+def test_full_general_graph_document_path(tmp_path,monkeypatch,experimental):
     from langchain_core.messages import AIMessage, HumanMessage
     from open_deep_research import deep_researcher as dr, mcsearch_adapter as mc, document_retrieval as documents, reporting
     from open_deep_research.state import ResearchQuestion
+    from open_deep_research import context_management
+    scopes=[]
+    async def context_spy(messages,config,*,scope):
+        scopes.append(scope)
+        return messages
+    monkeypatch.setattr(dr,'prepare_context',context_spy)
+    monkeypatch.setattr(context_management,'prepare_context',context_spy)
     run,doc=fixture_run(tmp_path);run.allow_web=False
     region=next(r for r in doc['pages'][1]['regions'] if 'Frame generation' in r['text'])
+    native_responses=iter([
+        AIMessage(content='',tool_calls=[{'name':'ConductResearch','args':{'research_topic':'frame generation'},'id':'delegate'}]),
+        AIMessage(content='',tool_calls=[{'name':'search_document_evidence','args':{'document_id':doc['id'],'question':'conditions'},'id':'document'}]),
+        AIMessage(content='',tool_calls=[{'name':'ResearchComplete','args':{},'id':'done'}]),
+        AIMessage(content='Frame generation enabled'),
+        AIMessage(content='',tool_calls=[{'name':'ResearchComplete','args':{},'id':'finish'}]),
+    ])
     class GraphModel:
         def __init__(self,schema=None):self.schema=schema
         def with_structured_output(self,schema,**kw):return GraphModel(schema)
@@ -86,6 +101,9 @@ def test_full_general_graph_document_path(tmp_path,monkeypatch):
         def with_config(self,*a,**kw):return self
         async def ainvoke(self,*a,**kw):
             if self.schema is ResearchQuestion:return ResearchQuestion(research_brief='frame generation conditions')
+            if not experimental:
+                assert 'LOCAL BOUNDED TEST' not in str(a)
+                return next(native_responses)
             return AIMessage(content='',tool_calls=[{'name':'ConductResearch','args':{'research_topic':'frame generation'},'id':'research-1'}])
     responses=iter([
         '<Sub-Question>\nWhat are the conditions?\n<Search>\nLocal Document Retrieval: frame generation conditions\n<Dependencies>\n[]',
@@ -95,7 +113,7 @@ def test_full_general_graph_document_path(tmp_path,monkeypatch):
     class Planner:
         def __init__(self,**kw):pass
         async def ainvoke(self,*a,**kw):return AIMessage(content=next(responses),response_metadata={'finish_reason':'stop'})
-    def factory(run,config):
+    def factory(run,config,**kwargs):
         async def infer(stage,prompt,images=()):
             if stage=='document_answer':
                 assert sum(i['type']=='image_url' for i in images)==2
@@ -108,12 +126,20 @@ def test_full_general_graph_document_path(tmp_path,monkeypatch):
     monkeypatch.setattr(documents,'get_retriever',FixtureRetriever)
     monkeypatch.setattr(reporting,'make_infer',factory)
     monkeypatch.setenv('OPENAI_API_KEY','offline-fixture')
-    config={'configurable':{'evidence_profile':'general','mcsearch_enabled':True,'mmsearch_enabled':False,
+    config={'configurable':{'evidence_profile':'general','mcsearch_enabled':experimental,'mmsearch_enabled':False,
         'concise_report':True,'allow_clarification':False,'research_model':'openai:fixture',
         'final_report_model':'openai:fixture','search_api':'none'}}
     token=ACTIVE_RUN.set(run)
     try: result=asyncio.run(dr.deep_researcher.ainvoke({'messages':[HumanMessage(content='What are the conditions?')]},config))
     finally: ACTIVE_RUN.reset(token)
     assert region['id'] in result['final_report']
-    assert run.mcsearch_trace['status']=='completed'
+    if experimental:
+        assert run.mcsearch_trace['status']=='completed'
+        assert 'mcsearch' in scopes
+    else:
+        assert 'supervisor' in scopes and any(s.startswith('researcher:') for s in scopes)
+        assert not getattr(run, 'mcsearch_trace', None)
+        saved=json.loads((run.directory/'report.json').read_text('utf-8'))
+        assert saved['research']['method']=='open_deep_research'
+        assert saved['research']['question']=='frame generation conditions'
     assert (run.directory/'report.json').exists()

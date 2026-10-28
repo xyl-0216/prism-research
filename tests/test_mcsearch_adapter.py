@@ -43,8 +43,8 @@ def test_incremental_cross_modal_chain():
     assert tools == ['image','text']
     assert result['status']=='completed'
     assert result['steps'][1]['depends_on']==['step-1']
-    assert 'Frame generation is enabled' in prompts[2][1]
-    assert snapshots[1]['steps'][0]['status']=='running'
+    assert 'Frame generation is enabled' in json.dumps(prompts[2][1])
+    assert any(s['steps'] and s['steps'][0]['status']=='running' for s in snapshots)
     assert 'page-1' in trace_note(result)
 
 
@@ -63,8 +63,6 @@ def test_upstream_protocol_drives_real_query_dispatch():
 
 
 @pytest.mark.parametrize('text',[
-    '<Sub-Question>\nQ\n<Search>\nLocal Image Retrieval with Text Query: cat\n<Dependencies>\n[]',
-    '<Sub-Question>\nQ\n<Search>\nNo Retrieval\n<Dependencies>\n[]',
     '<Sub-Question>\nQ\n<Search>\nLocal Text Retrieval: q\nLocal Image Retrieval with Input Image\n<Dependencies>\n[]',
     'Final Answer: not framed',
 ])
@@ -76,7 +74,7 @@ def test_gap_reaches_next_planner_and_is_not_answered():
     run, prompts, _, _ = drive([plan(), assessment('insufficient'),
         {'action':'stop','reason':'Need unavailable independent measurements'}])
     result = asyncio.run(run())
-    assert 'Need matching independent test' in prompts[2][1]
+    assert 'Need matching independent test' in json.dumps(prompts[2][1])
     assert result['status']=='incomplete'
 
 
@@ -103,7 +101,7 @@ def test_insufficient_step_cannot_be_dependency():
 
 
 def test_step_limit_preserves_unfinished_status():
-    run, _, _, _ = drive([plan(), assessment()], max_steps=1)
+    run, _, _, _ = drive([plan(), assessment(), plan('Another question')], max_steps=1)
     assert asyncio.run(run())['status']=='budget_exhausted'
 
 
@@ -131,7 +129,12 @@ def test_actual_adapter_persists_trace_and_routes_tools(tmp_path, monkeypatch):
     ledger.write_text(json.dumps({'approved':True,'requests':0,'searches':0,
         'input_chars':0,'reserved_output_tokens':0}), 'utf-8')
     run = EvidenceRun(tmp_path/'run', ledger)
-    run.images['nvidia_chart'] = {'id':'nvidia_chart'}
+    import hashlib
+    image_path=tmp_path/'image.png'
+    raw=b'\x89PNG\r\n\x1a\nfixture'
+    image_path.write_bytes(raw)
+    run.images['nvidia_chart'] = {'id':'nvidia_chart','path':str(image_path),
+                                  'sha256':hashlib.sha256(raw).hexdigest()}
     responses = iter([plan(), assessment(ids=['image:nvidia_chart']),
         plan('Read original','text',['step-1']), assessment(ids=['page-1']),
         {'action':'stop','reason':'Done'}])

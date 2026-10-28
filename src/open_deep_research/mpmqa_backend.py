@@ -113,6 +113,8 @@ def validate_scores(value, document):
 
 
 class AuthorURARetriever:
+    method = METHOD
+
     def __init__(self, settings):
         self.settings = settings
 

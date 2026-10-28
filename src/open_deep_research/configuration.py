@@ -43,8 +43,9 @@ class Configuration(BaseModel):
     evidence_profile: Optional[Literal["text", "nvidia", "general"]] = None
     concise_report: bool = False
     mmsearch_enabled: bool = False
-    mcsearch_enabled: bool = False
-    mcsearch_max_steps: int = Field(default=3, ge=1, le=4)
+    mcsearch_enabled: bool = Field(default=False, description='Opt-in experimental MC-Search loop; default uses Open Deep Research supervision')
+    mcsearch_max_steps: int = Field(default=3, ge=1, le=8)
+    bailian_search_model: Optional[str] = None
 
     # General Configuration
     max_structured_output_retries: int = Field(

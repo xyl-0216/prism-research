@@ -18,6 +18,18 @@ class BudgetExceeded(RuntimeError):
     pass
 
 
+def replace_file(source, target):
+    """Retry short Windows sharing violations without repeating any API call."""
+    for attempt in range(4):
+        try:
+            Path(source).replace(target)
+            return
+        except PermissionError:
+            if attempt == 3:
+                raise
+            time.sleep(0.025 * (attempt + 1))
+
+
 class EvidenceRun:
     def __init__(self, directory, ledger, secrets=()):
         self.directory = Path(directory)
@@ -66,7 +78,7 @@ class EvidenceRun:
             self.ledger.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.ledger.with_suffix('.tmp')
             tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), 'utf-8')
-            tmp.replace(self.ledger)
+            replace_file(tmp, self.ledger)
         self.log('request_reserved', kind=kind, totals=data)
 
 

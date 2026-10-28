@@ -48,13 +48,16 @@ def merge_chunk(payload, result):
 
 async def _bailian_native_search(query: str, config: RunnableConfig):
     settings = Configuration.from_runnable_config(config)
-    model = settings.summarization_model
-    if not model.startswith('openai:qwen3.5-'):
-        raise ValueError('This native search adapter is validated for Qwen3.5 only')
+    model = settings.bailian_search_model or settings.summarization_model
+    text_search = model == 'openai:qwen-flash'
+    if not text_search and not model.startswith('openai:qwen3.5-'):
+        raise ValueError('Native search supports qwen-flash or Qwen3.5')
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
         raise ValueError('OPENAI_API_KEY is missing')
     endpoint = native_endpoint(os.getenv('OPENAI_API_BASE') or os.getenv('OPENAI_BASE_URL') or '')
+    if text_search:
+        endpoint = endpoint.replace('/multimodal-generation/generation', '/text-generation/generation')
     body = {
         'model': model.split(':', 1)[1],
         'input': {'messages': [{'role': 'user', 'content': [{'text':
@@ -66,12 +69,26 @@ async def _bailian_native_search(query: str, config: RunnableConfig):
                                'enable_source': True, 'enable_citation': True},
         },
     }
+    if text_search:
+        body['input']['messages'][0]['content'] = body['input']['messages'][0]['content'][0]['text']
+        body['parameters']['result_format'] = 'message'
     result = {'sources': {}, 'parts': [], 'usage': {}, 'finish_reason': None}
     from open_deep_research.evidence_runtime import ACTIVE_RUN
     evidence_run = ACTIVE_RUN.get()
     if evidence_run is not None:
-        if evidence_run.searches >= 1:
-            raise RuntimeError('Per-run search budget exhausted: 1; use original-source reader now')
+        if text_search:
+            from open_deep_research.evidence_tools import ALLOWED_HOSTS
+            requested = getattr(evidence_run, 'question', '') + ' ' + query
+            allowed=getattr(evidence_run,'allowed_hosts',ALLOWED_HOSTS)
+            hosts = [host for host in sorted(allowed) if host in requested]
+            sites=getattr(evidence_run,'shopping_sites',None) if getattr(evidence_run,'shopping_enabled',False) else None
+            body['parameters']['search_options']['assigned_site_list'] = sorted(sites) if sites else hosts or sorted(allowed)
+        limit=getattr(evidence_run,'max_searches',1)
+        if evidence_run.searches >= limit:
+            raise RuntimeError(f'Per-run search budget exhausted: {limit}; use original-source reader now')
+        if getattr(evidence_run,'shopping_enabled',False):
+            prompt='请联网寻找商品的购买页面、当前页面报价或官方规格。返回来源，查不到不要猜测价格。\n'+query[:2000]
+            body['input']['messages'][0]['content']=prompt if text_search else [{'text':prompt}]
         evidence_run.reserve('search', len(query), body['parameters']['max_tokens'])
         evidence_run.searches += 1
     # No automatic HTTP retries: each retry could charge another search.
@@ -93,14 +110,20 @@ async def _bailian_native_search(query: str, config: RunnableConfig):
                             data = line[5:].strip()
                             if data and data != '[DONE]':
                                 merge_chunk(json.loads(data), result)
-    if not result['sources']:
-        raise RuntimeError('No provider search sources returned; cannot verify a real search')
-    if not result['parts']:
+    if not result['parts'] and result['sources']:
         raise RuntimeError('Search returned sources but no summary')
     if evidence_run is not None:
-        evidence_run.log('search_result', query=query, sources=list(result['sources'].values()),
+        if hasattr(evidence_run, 'source_urls'):
+            from open_deep_research.evidence_tools import validate_url
+            for url in result['sources']:
+                try:
+                    evidence_run.source_urls.add(validate_url(url))
+                except ValueError:
+                    pass
+        evidence_run.log('search_result', model=model, query=query, sources=list(result['sources'].values()),
                          usage=result['usage'], finish_reason=result['finish_reason'])
     return {'query': query, 'provider': 'bailian_native', 'strategy': 'turbo',
+            'status': 'ok' if result['sources'] else 'insufficient',
             'summary': ''.join(result['parts']), 'sources': list(result['sources'].values()),
             'usage': result['usage'], 'finish_reason': result['finish_reason'],
             'request_id': result.get('request_id')}

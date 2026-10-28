@@ -600,13 +600,26 @@ async def get_all_tools(config: RunnableConfig):
 
     if configurable.evidence_profile:
         from open_deep_research.evidence_tools import read_source_pages, inspect_source_image
-        tools.append(read_source_pages)
+        from open_deep_research.evidence_runtime import ACTIVE_RUN
+        run = ACTIVE_RUN.get()
+        if configurable.evidence_profile != 'general' or (run and getattr(run, 'allow_web', True)):
+            tools.append(read_source_pages)
         if configurable.evidence_profile == 'nvidia':
             tools.append(inspect_source_image)
         elif configurable.evidence_profile == 'general':
             from open_deep_research.visual_tools import inspect_registered_image
             from open_deep_research.document_retrieval import search_document_evidence
-            tools.extend([inspect_registered_image,search_document_evidence])
+            if run and run.images:
+                tools.append(inspect_registered_image)
+            if run and getattr(run, 'documents', {}):
+                tools.append(search_document_evidence)
+            if run and getattr(run,'shopping_enabled',False):
+                from open_deep_research.shopping import research_purchase_options
+                tools=[t for t in tools if getattr(t,'name','') not in ('multimodal_evidence_search','bailian_web_search')]
+                tools.append(research_purchase_options)
+            if run and getattr(getattr(run, 'context_manager', None), 'archives', {}):
+                from open_deep_research.context_management import read_context_archive
+                tools.append(read_context_archive)
 
     # Track existing tool names to prevent conflicts
     existing_tool_names = {

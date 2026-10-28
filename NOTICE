@@ -6,6 +6,11 @@ Original LICENSE retained at the repository root.
 
 MC-Search: Copyright (c) 2026 MC-Search contributors, MIT.
 Vendored parsers: src/open_deep_research/mcsearch_protocol.py.
+Adapted vqa_agent_local_gpt loop: src/open_deep_research/mcsearch_loop.py.
+Author function for offline parity tests (trailing whitespace normalized):
+tests/fixtures/mcsearch_author_agent.py.
+Changes: async LangChain calls, injected project tools, Chinese action-only prompt,
+optional dependency/PDF extensions, evidence accounting, and last-turn stop handling.
 License: docs/third_party/MC-Search-LICENSE.txt.
 Source and exact extraction details: docs/third_party/mcsearch-provenance.json.
 

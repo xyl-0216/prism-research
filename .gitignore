@@ -11,6 +11,7 @@ dist/
 runs/
 smoke-demo/
 .langgraph_api/
+.prism/
 docs/logs/*
 !docs/logs/.gitkeep
 site/prism-research-source.zip

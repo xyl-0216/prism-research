@@ -5,5 +5,21 @@
     "parse_search_block",
     "extract_final_answer"
   ],
-  "modification": "Extracted unchanged function bodies; dependencies reduced to Python standard library. Planner instructions translated and adapted separately."
+  "modification": "Extracted unchanged function bodies; dependencies reduced to Python standard library. Planner instructions translated and adapted separately.",
+  "controller": {
+    "source_function": "vqa_agent_local_gpt",
+    "source_file": "src/gpt/agent_local_retrieval_gpt_multi.py",
+    "source_function_sha256": "d93698a332e0a23a4893862b6507b3b4ad2693d1ba4f381521155c7ed5897262",
+    "adapted_file": "src/open_deep_research/mcsearch_loop.py",
+    "parity_fixture": "tests/fixtures/mcsearch_author_agent.py",
+    "changes": [
+      "Async LangChain model boundary and injected project tools",
+      "Persistent full conversation and original observations retained",
+      "CLI model boundary optionally compacts old context using LangChain summarization; original loop and audit history remain intact",
+      "Chinese action-only instructions; no hidden reasoning requested",
+      "PDF action and optional dependencies are project extensions",
+      "Bounded no-retrieval action and final-answer check at last-turn boundary",
+      "Original local image/text KBs are not integrated; current tools are explicitly mapped"
+    ]
+  }
 }
